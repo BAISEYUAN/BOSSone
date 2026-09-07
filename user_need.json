@@ -1,0 +1,12 @@
+{
+  "provider": "ark",
+  "query": "AI产品经理",
+  "city_code": "101010100",
+  "target_num": 3,
+  "xinzixiaxian": 15000,
+  "qiwangdidian": "北京",
+  "daiyuyaoqiu": "双休",
+  "gangweiyaoqiu": "AI产品经理",
+  "model": "",
+  "workflow_id": ""
+}
