@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>BOSSone · 智能筛岗助手</title>
+<style>
+  :root{
+    --bg:#f5f7fb; --card:#ffffff; --line:#e6eaf2;
+    --ink:#1f2733; --sub:#6b7686;
+    --primary:#3b5bdb; --primary-soft:#eef1fe;
+    --good:#2f9e44; --good-bg:#e9f9ee;
+    --warn:#e8890c; --warn-bg:#fff6e8;
+    --bad:#e03131; --bad-bg:#fdeeee;
+    --radius:14px; --shadow:0 2px 12px rgba(31,39,51,.06);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.6;
+  }
+  .wrap{max-width:960px; margin:0 auto; padding:32px 20px 80px;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  header{display:flex; align-items:center; gap:14px; margin-bottom:6px;}
+  .logo{
+    width:46px; height:46px; border-radius:12px; background:var(--primary);
+    color:#fff; font-weight:800; font-size:22px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 14px rgba(59,91,219,.35);
+  }
+  h1{font-size:24px; font-weight:800; letter-spacing:.5px;}
+  .tagline{color:var(--sub); font-size:14px; margin-top:2px;}
+  .badge-live{
+    margin-left:auto; font-size:12px; color:var(--good); background:var(--good-bg);
+    border:1px solid #c3ecd0; padding:4px 10px; border-radius:999px; font-weight:600; white-space:nowrap;
+  }
+  .nav-btn{
+    background:var(--card); color:var(--primary); border:1px solid var(--line);
+    padding:7px 14px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer;
+    box-shadow:var(--shadow); white-space:nowrap; transition:transform .08s ease;
+  }
+  .nav-btn:hover{transform:translateY(-1px);}
+
+  /* ===== 历史记录页 ===== */
+  .hist-item{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); margin-bottom:12px; padding:16px 20px; cursor:pointer;
+    display:flex; align-items:center; gap:14px; transition:border-color .12s ease, transform .08s ease;
+  }
+  .hist-item:hover{border-color:var(--primary); transform:translateY(-1px);}
+  .hist-item .h-query{font-size:16px; font-weight:800; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .hist-item .h-meta{font-size:12px; color:var(--sub); white-space:nowrap;}
+  .hist-item .h-arrow{color:var(--primary); font-weight:800; font-size:16px;}
+  .empty-hint{
+    background:var(--card); border:1px dashed var(--line); border-radius:var(--radius);
+    padding:40px 20px; text-align:center; color:var(--sub); font-size:14px;
+  }
+  .back-row{display:flex; align-items:center; gap:12px; margin-bottom:16px;}
+  .back-row .t{font-size:19px; font-weight:800;}
+
+  /* ===== 表单页 ===== */
+  .form-card{
+    margin-top:24px; background:var(--card); border:1px solid var(--line);
+    border-radius:var(--radius); box-shadow:var(--shadow); padding:26px 28px;
+  }
+  .form-card h2{font-size:17px; font-weight:800; margin-bottom:4px;}
+  .form-card .sub{font-size:13px; color:var(--sub); margin-bottom:20px;}
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:0 18px;}
+  @media(max-width:640px){ .form-grid{grid-template-columns:1fr;} }
+  .field{margin-bottom:18px;}
+  .field label{display:block; font-size:13px; color:var(--sub); margin-bottom:6px; font-weight:600;}
+  .field label .req{color:var(--bad);}
+  .field input,.field select{
+    width:100%; padding:12px 14px; border:1px solid var(--line); border-radius:10px;
+    font-size:15px; background:#fafbfe; color:var(--ink); transition:border-color .15s ease, background .15s ease;
+  }
+  .field input:focus,.field select:focus{outline:none; border-color:var(--primary); background:#fff;}
+  .field .hint{font-size:12px; color:#aab2c0; margin-top:4px;}
+
+  .notice{
+    margin-top:2px; margin-bottom:18px; background:var(--warn-bg); border:1px solid #f5d9a8;
+    color:#8a5b00; padding:10px 14px; border-radius:10px; font-size:13px;
+  }
+  .error{
+    display:none; margin-bottom:14px; background:var(--bad-bg); border:1px solid #f5c2c2;
+    color:var(--bad); padding:10px 14px; border-radius:10px; font-size:13px;
+  }
+  .error.show{display:block;}
+
+  .run-btn{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    width:100%; margin-top:6px; padding:16px 24px;
+    background:var(--primary); color:#fff; border:none; border-radius:var(--radius);
+    font-size:16px; font-weight:700; cursor:pointer;
+    box-shadow:0 6px 20px rgba(59,91,219,.30); transition:transform .08s ease, box-shadow .15s ease;
+  }
+  .run-btn:hover{transform:translateY(-1px); box-shadow:0 8px 24px rgba(59,91,219,.38);}
+  .run-btn:disabled{opacity:.6; cursor:not-allowed; transform:none;}
+
+  /* ===== Loading 页 ===== */
+  .loading-box{
+    margin-top:40px; background:var(--card); border:1px solid var(--line);
+    border-radius:var(--radius); box-shadow:var(--shadow); padding:56px 28px; text-align:center;
+  }
+  .spinner{
+    width:52px; height:52px; border:5px solid var(--line); border-top-color:var(--primary);
+    border-radius:50%; margin:0 auto 24px; animation:spin 1s linear infinite;
+  }
+  @keyframes spin{ to{transform:rotate(360deg);} }
+  .loading-box h2{font-size:19px; font-weight:800;}
+  .loading-box .ld-sub{font-size:14px; color:var(--sub); margin-top:8px;}
+  .loading-box .ld-tip{font-size:13px; color:#aab2c0; margin-top:22px; line-height:1.8;}
+
+  /* ===== 结果页 ===== */
+  .topbar{display:flex; align-items:center; gap:14px; margin-bottom:18px;}
+  .re-run{
+    background:var(--primary); color:#fff; border:none;
+    padding:9px 18px; border-radius:999px; font-size:14px; font-weight:700; cursor:pointer;
+    box-shadow:0 4px 14px rgba(59,91,219,.28); transition:transform .08s ease;
+  }
+  .re-run:hover{transform:translateY(-1px);}
+  .topbar h2{font-size:19px; font-weight:800;}
+  .topbar .count-pill{margin-left:auto; font-size:13px; color:var(--sub); background:var(--card);
+      border:1px solid var(--line); padding:5px 12px; border-radius:999px; box-shadow:var(--shadow);}
+
+  .req-summary{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:14px 20px; margin-bottom:16px;
+    display:flex; flex-wrap:wrap; gap:6px 22px; font-size:13px; color:var(--sub);
+  }
+  .req-summary b{color:var(--ink); font-weight:700;}
+  .req-summary .label{color:#aab2c0;}
+
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px;}
+  .stat{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:14px 20px; display:flex; flex-direction:column;
+  }
+  .stat .n{font-size:28px; font-weight:800;}
+  .stat .t{font-size:13px; color:var(--sub); margin-top:2px;}
+  .stat.good .n{color:var(--good);} .stat.warn .n{color:var(--warn);} .stat.bad .n{color:var(--bad);}
+
+  .report-path{
+    margin-bottom:16px; font-size:12px; color:var(--sub); background:var(--primary-soft);
+    border:1px solid var(--line); border-radius:10px; padding:8px 14px; word-break:break-all;
+  }
+
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); margin-bottom:16px; overflow:hidden;
+  }
+  .card-head{display:flex; align-items:flex-start; gap:14px; padding:18px 22px 14px;}
+  .verdict{
+    flex-shrink:0; font-size:13px; font-weight:700; padding:5px 12px; border-radius:999px; margin-top:2px;
+  }
+  .verdict.good{background:var(--good-bg); color:var(--good);}
+  .verdict.warn{background:var(--warn-bg); color:var(--warn);}
+  .verdict.bad{background:var(--bad-bg); color:var(--bad);}
+  .job-name{font-size:17px; font-weight:800;}
+  .job-meta{display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:6px; font-size:13px; color:var(--sub);}
+  .job-meta b{color:var(--ink); font-weight:600;}
+
+  .dims{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:0 22px 14px;}
+  @media(max-width:640px){ .dims{grid-template-columns:repeat(2,1fr);} }
+  .dim{
+    display:flex; align-items:center; gap:8px; background:#fafbfe; border:1px solid var(--line);
+    border-radius:10px; padding:8px 12px; font-size:13px;
+  }
+  .dim .dot{width:9px; height:9px; border-radius:50%; flex-shrink:0;}
+  .dot.good{background:var(--good);} .dot.warn{background:var(--warn);} .dot.bad{background:var(--bad);}
+  .dim .lv{font-weight:700;}
+  .dim.good .lv{color:var(--good);} .dim.warn .lv{color:var(--warn);} .dim.bad .lv{color:var(--bad);}
+
+  .reason{border-top:1px dashed var(--line); padding:12px 22px; font-size:13px; color:var(--sub);}
+  .dim-reason{display:flex; align-items:flex-start; gap:8px; padding:5px 0; font-size:13px; line-height:1.5;}
+  .dr-name{flex-shrink:0; font-weight:700; color:var(--ink); min-width:72px;}
+  .dr-badge{flex-shrink:0; font-size:11px; font-weight:700; padding:1px 8px; border-radius:999px; margin-top:1px;}
+  .dr-badge.good{background:var(--good-bg); color:var(--good);}
+  .dr-badge.warn{background:var(--warn-bg); color:var(--warn);}
+  .dr-badge.bad{background:var(--bad-bg); color:var(--bad);}
+  .dr-txt{color:#374151; min-width:0;}
+  .toggle{
+    width:100%; background:var(--primary-soft); border:none; cursor:pointer; padding:11px 22px;
+    font-size:13px; font-weight:600; color:var(--primary); text-align:left;
+  }
+  .toggle:hover{background:#e3e8fb;}
+  .jd{display:none; padding:16px 22px; background:#fafbfe; border-top:1px solid var(--line);
+      font-size:13px; color:#374151; white-space:pre-wrap; max-height:360px; overflow:auto;}
+  .jd.open{display:block;}
+
+  .apply-btn{
+    margin-left:auto; flex-shrink:0; align-self:flex-start;
+    background:var(--primary); color:#fff; text-decoration:none;
+    font-size:13px; font-weight:700; padding:8px 16px; border-radius:999px;
+    display:inline-flex; align-items:center; gap:4px;
+    box-shadow:0 3px 10px rgba(59,91,219,.28); transition:transform .08s ease;
+  }
+  .apply-btn:hover{transform:translateY(-1px);}
+  .job-main{flex:1; min-width:0; color:inherit; text-decoration:none; display:block; cursor:pointer;}
+  .job-main:hover .job-name{color:var(--primary); text-decoration:underline;}
+
+  footer{margin-top:40px; text-align:center; color:#aab2c0; font-size:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 启动自检横幅：缺 API Key / Edge 未连接时给用户明确指引 -->
+  <div id="startup-banner" class="notice" style="display:none; margin-bottom:16px; border-left:4px solid var(--bad);"></div>
+
+  <!-- 视图1：需求表单（默认） -->
+  <div class="view active" id="view-form">
+    <header>
+      <div class="logo">B</div>
+      <div>
+        <h1>BOSSone 智能筛岗助手</h1>
+        <div class="tagline">填需求 → 自动抓取 BOSS 岗位 → AI 逐条评估 6 维匹配度 → 输出投递建议</div>
+      </div>
+      <span class="badge-live">● 本地 Demo</span>
+      <button class="nav-btn" onclick="openHistory()">🗂 历史记录</button>
+    </header>
+
+    <div class="form-card">
+      <h2>我的求职需求</h2>
+      <div class="sub">填写后点击「开始智能筛选」，系统会按你的要求逐条评估抓到的岗位。</div>
+
+      <div class="notice">
+        使用前请先在本机 Edge 登录 BOSS 直聘，并打开你要筛选岗位的<b>搜索结果列表页</b>（脚本会直接抓取你当前打开的搜索页）。
+      </div>
+
+      <div class="error" id="form-error"></div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label>目标岗位 <span class="req">*</span></label>
+          <input id="f-job" type="text" placeholder="如：AI 产品经理 / 数据分析师" />
+        </div>
+        <div class="field">
+          <label>薪资下限（元/月）<span class="req">*</span></label>
+          <input id="f-salary" type="number" min="0" step="1000" placeholder="如：15000" value="15000" />
+        </div>
+        <div class="field">
+          <label>期望地点 <span class="req">*</span></label>
+          <input id="f-city" type="text" placeholder="如：北京" />
+        </div>
+        <div class="field">
+          <label>待遇要求 <span class="req">*</span></label>
+          <input id="f-benefit" type="text" placeholder="如：双休、五险一金、弹性工作" />
+        </div>
+        <div class="field">
+          <label>抓取条数</label>
+          <select id="f-count">
+            <option value="3" selected>3 条（快，约 1 分钟）</option>
+            <option value="5">5 条</option>
+            <option value="10">10 条</option>
+            <option value="15">15 条</option>
+          </select>
+          <div class="hint">条数越多，抓取+评估耗时越长。</div>
+        </div>
+      </div>
+
+      <button class="run-btn" id="run-btn" onclick="submitForm()">
+        开始智能筛选
+        <span>→</span>
+      </button>
+    </div>
+
+    <footer>BOSSone Demo · 数据来源：本机 Edge 抓取 + 火山方舟豆包评估</footer>
+  </div>
+
+  <!-- 视图2：Loading -->
+  <div class="view" id="view-loading">
+    <div class="loading-box">
+      <div class="spinner"></div>
+      <h2>正在智能筛选…</h2>
+      <div class="ld-sub" id="loading-sub">正在提交需求</div>
+      <div class="ld-tip">正在通过本机 Edge 抓取 BOSS 岗位，并让豆包逐条评估 6 维匹配度。<br>通常需要 1-2 分钟，期间请不要关闭页面。</div>
+    </div>
+  </div>
+
+  <!-- 视图3：结果 -->
+  <div class="view" id="view-results">
+    <div class="topbar">
+      <button class="re-run" onclick="go('view-form')">＋ 重新筛选</button>
+      <h2>筛选结果</h2>
+      <span class="count-pill" id="result-count">共 0 条</span>
+      <button class="nav-btn" onclick="openHistory()">🗂 历史记录</button>
+    </div>
+
+    <div class="req-summary" id="req-summary"></div>
+    <div class="stats" id="stats-results"></div>
+    <div class="report-path" id="report-path" style="display:none;"></div>
+    <div id="list"></div>
+    <footer>BOSSone Demo · 数据来源：本机 Edge 抓取 + 火山方舟豆包评估</footer>
+  </div>
+
+  <!-- 视图4：历史记录列表 -->
+  <div class="view" id="view-history">
+    <div class="back-row">
+      <button class="re-run" onclick="go('view-form')">＋ 返回表单</button>
+      <span class="t">历史抓取记录</span>
+    </div>
+    <div class="req-summary" style="margin-bottom:16px;">这里保存了每次筛选自动生成的报告，点击任意一条可回看当时的岗位详情。</div>
+    <div id="history-list"></div>
+    <footer>BOSSone Demo · 数据来源：本机 Edge 抓取 + 火山方舟豆包评估</footer>
+  </div>
+
+  <!-- 视图5：历史详情 -->
+  <div class="view" id="view-history-detail">
+    <div class="back-row">
+      <button class="re-run" onclick="openHistory()">← 返回历史</button>
+      <span class="t" id="hist-detail-title">历史详情</span>
+    </div>
+    <div class="stats" id="stats-hist"></div>
+    <div class="report-path" id="hist-report-path" style="display:none;"></div>
+    <div id="hist-list"></div>
+    <footer>BOSSone Demo · 数据来源：本机 Edge 抓取 + 火山方舟豆包评估</footer>
+  </div>
+
+</div>
+
+<script>
+// 后端地址：优先用页面自身来源（打包版自动跟随 launcher 选中的端口）；file:// 直开时回退 127.0.0.1:5000
+const ORIGIN = (location.protocol === "file:" || !location.origin || location.origin === "null")
+  ? "http://127.0.0.1:5000" : location.origin;
+const API = ORIGIN + "/run";
+const API_HISTORY = ORIGIN + "/history";
+const DIM_ORDER = ["薪资","位置","待遇","岗位相关性","无外包风险","技能匹配度"];
+const VERDICT = {
+  "建议投": {cls:"good", label:"建议投"},
+  "谨慎":   {cls:"warn", label:"谨慎"},
+  "不建议": {cls:"bad",  label:"不建议"}
+};
+const LV = { "达标":"good", "存疑":"warn", "不达标":"bad" };
+
+let lastReq = null;   // 记住上次提交的需求，用于结果页概要 + 重新筛选时保留
+
+function go(id){
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  window.scrollTo(0,0);
+}
+
+/* ===== 浏览器历史导航 + 历史数据缓存（支持"去投递后退回历史"，且后退时不再卡加载） ===== */
+// 内存缓存：后退恢复时直接用缓存秒开，不再重新请求后端，避免一直转圈
+const histCache = { list: null, detail: {}, results: null };
+
+// 带超时的 fetch：任何请求最多等 8 秒，防止网络异常时页面永远卡在"加载中"
+function fetchJSON(url, timeout = 8000){
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeout);
+  return fetch(url, { signal: ctrl.signal })
+    .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .finally(() => clearTimeout(t));
+}
+function netHint(e){
+  if (e && e.name === "AbortError") return "（请求超时，请确认后端服务 127.0.0.1:5000 正在运行）";
+  return ((e && e.message || "").indexOf("Failed to fetch") >= 0
+    ? "（请确认本机已启动后端服务 127.0.0.1:5000）" : "");
+}
+
+// 进入视图时，把状态写入浏览器历史（后退时 popstate 自动恢复对应视图）
+// 关键：所有视图（含结果页）都记录，保证后退永远在本站内 popstate，绝不跨站回退卡死
+// 若栈顶已是同一视图，用 replaceState 替换，避免历史栈无限膨胀
+function goHistory(id, file){
+  const s = {view: id, file: file || null};
+  const cur = history.state;
+  if (cur && cur.view === id && (cur.file || null) === (file || null)){
+    history.replaceState(s, "");
+  } else {
+    history.pushState(s, "");
+  }
+  go(id);
+}
+
+// 按浏览器历史状态恢复视图（后退、以及后退后的整页刷新都走这里）
+function restoreFromState(state){
+  const s = state || {};
+  if (s.view === "view-history"){
+    go("view-history");
+    renderHistoryList(true);      // 优先用缓存，秒开不转圈
+  } else if (s.view === "view-history-detail" && s.file){
+    go("view-history-detail");
+    renderHistoryDetail(s.file, true);
+  } else if (s.view === "view-results"){
+    // 有本次结果缓存则秒开结果页；无缓存（如刷新后内存丢失）则安全降级到表单页，绝不卡死
+    if (histCache.results){
+      go("view-results");
+      fillResults(histCache.results.data, histCache.results.req);
+    } else {
+      go("view-form");
+    }
+  } else {
+    go("view-form");
+  }
+}
+window.addEventListener("popstate", function(e){
+  restoreFromState(e.state);
+});
+// 页面加载时：如果是从"去投递"后退刷新回来的，恢复对应历史视图
+restoreFromState(history.state);
+
+/* ===== 历史记录 ===== */
+function openHistory(){
+  goHistory("view-history");
+  renderHistoryList(false);       // 手动进入列表 → 拉最新数据
+}
+
+function renderHistoryList(fromCache){
+  const box = document.getElementById("history-list");
+  if (fromCache && histCache.list){   // 后退/刷新恢复 → 用缓存秒开
+    box.innerHTML = histCache.list;
+    return;
+  }
+  box.innerHTML = '<div class="empty-hint">正在加载历史记录…</div>';
+  fetchJSON(API_HISTORY)
+    .then(data => {
+      if (!data.records || data.records.length === 0){
+        histCache.list = '<div class="empty-hint">还没有历史记录。<br>完成一次筛选后，报告会自动保存在这里。</div>';
+      } else {
+        histCache.list = data.records.map(rec =>
+          `<div class="hist-item" onclick="openHistoryDetail('${encodeURIComponent(rec.file)}')" title="查看这次筛选的详情">
+            <div class="h-query">${rec.query}</div>
+            <div class="h-meta">${rec.ts}</div>
+            <div class="h-arrow">›</div>
+          </div>`
+        ).join("");
+      }
+      box.innerHTML = histCache.list;
+    })
+    .catch(e => {
+      box.innerHTML = '<div class="empty-hint">加载历史失败：' + e.message + netHint(e) + '</div>';
+    });
+}
+
+function openHistoryDetail(file){
+  goHistory("view-history-detail", file);
+  renderHistoryDetail(file, false);   // 手动进入详情 → 拉最新数据
+}
+
+function renderHistoryDetail(file, fromCache){
+  const box = document.getElementById("hist-list");
+  if (fromCache && histCache.detail[file]){   // 后退/刷新恢复 → 用缓存秒开
+    fillHistoryDetail(histCache.detail[file]);
+    return;
+  }
+  box.innerHTML = '<div class="empty-hint">正在加载该次记录…</div>';
+  fetchJSON(API_HISTORY + "/" + file)
+    .then(data => {
+      histCache.detail[file] = data;
+      fillHistoryDetail(data);
+    })
+    .catch(e => {
+      box.innerHTML = '<div class="empty-hint">加载失败：' + e.message + netHint(e) + '</div>';
+    });
+}
+
+// 把详情数据渲染到页面（首次进入和后退恢复共用）
+function fillHistoryDetail(data){
+  document.getElementById("hist-detail-title").textContent = data.query + " · " + data.total + " 条";
+  // 三档统计
+  const s = {good:0, warn:0, bad:0};
+  (data.items||[]).forEach(j => {
+    const c = j.verdict === "建议投" ? "good" : (j.verdict === "谨慎" ? "warn" : "bad");
+    s[c]++;
+  });
+  document.getElementById("stats-hist").innerHTML = [
+    ["good", s.good, "条建议投递"],
+    ["warn", s.warn, "条谨慎考虑"],
+    ["bad", s.bad, "条不建议投递"]
+  ].map(([c,n,t]) => `<div class="stat ${c}"><span class="n">${n}</span><span class="t">${t}</span></div>`).join("");
+  // 报告路径提示
+  const rep = data.report || {};
+  const path = rep.md || rep.excel || "";
+  const rp = document.getElementById("hist-report-path");
+  if (path){ rp.style.display = "block"; rp.textContent = "该次报告文件：" + path; }
+  else { rp.style.display = "none"; }
+  document.getElementById("hist-list").innerHTML =
+    (data.items||[]).map(renderJob).join("") ||
+    '<div class="empty-hint">该条记录没有岗位数据。</div>';
+}
+
+function showError(msg){
+  const el = document.getElementById("form-error");
+  el.textContent = msg;
+  el.classList.add("show");
+}
+function hideError(){
+  document.getElementById("form-error").classList.remove("show");
+}
+
+function submitForm(){
+  hideError();
+  const f = {
+    gangweiyaoqiu: document.getElementById("f-job").value.trim(),
+    xinzixiaxian: Number(document.getElementById("f-salary").value),
+    qiwangdidian: document.getElementById("f-city").value.trim(),
+    daiyuyaoqiu: document.getElementById("f-benefit").value.trim(),
+    target_num: Number(document.getElementById("f-count").value),
+  };
+  // 前端校验
+  const errs = [];
+  if(!f.gangweiyaoqiu) errs.push("请填写目标岗位");
+  if(!f.xinzixiaxian || f.xinzixiaxian <= 0) errs.push("请填写有效的薪资下限");
+  if(!f.qiwangdidian) errs.push("请填写期望地点");
+  if(!f.daiyuyaoqiu) errs.push("请填写待遇要求");
+  if(errs.length){ showError(errs.join("；")); return; }
+
+  lastReq = f;
+  const btn = document.getElementById("run-btn");
+  btn.disabled = true;
+  btn.textContent = "正在请求…";
+
+  document.getElementById("loading-sub").textContent =
+    `目标岗位：${f.gangweiyaoqiu} ｜ 薪资下限：¥${f.xinzixiaxian}/月 ｜ 期望地点：${f.qiwangdidian}`;
+  go("view-loading");
+
+  const body = {
+    gangweiyaoqiu: f.gangweiyaoqiu,
+    xinzixiaxian: f.xinzixiaxian,
+    qiwangdidian: f.qiwangdidian,
+    daiyuyaoqiu: f.daiyuyaoqiu,
+    target_num: f.target_num,
+    query: f.gangweiyaoqiu,     // 抓取关键词默认取目标岗位
+    city_code: "101010100",     // 城市码默认北京（方案B实际按浏览器当前搜索页抓取）
+  };
+
+  // 运行请求：抓取+评估本身需 1-2 分钟，给足超时（5 分钟）防止后端异常时页面无限挂起转圈
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 300000);
+  fetch(API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: ctrl.signal,
+  })
+    .then(async r => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.detail || ("请求失败（HTTP " + r.status + "）"));
+      return data;
+    })
+    .then(data => showResults(data))
+    .catch(e => {
+      btn.disabled = false;
+      btn.textContent = "开始智能筛选 →";
+      // 网络层失败（后端没启动）才提示启动后端；业务错误（如 Edge 页面不对）直接显示后端返回的原因
+      const isAbort = e && e.name === "AbortError";
+      const hint = isAbort
+        ? "（运行超时，请确认 Edge 搜索页已打开、后端服务正常后重试）"
+        : ((e.message || "").indexOf("Failed to fetch") >= 0
+          ? "（请确认本机已启动后端服务 127.0.0.1:5000）" : "");
+      showError("运行失败：" + e.message + hint);
+      go("view-form");
+    })
+    .finally(() => clearTimeout(timer));
+}
+
+function showResults(data){
+  const btn = document.getElementById("run-btn");
+  btn.disabled = false;
+  btn.textContent = "开始智能筛选 →";
+  histCache.list = null;   // 新一次筛选完成，下次进历史记录时拉最新列表
+  histCache.results = { data: data, req: lastReq };   // 缓存本次结果，后退/刷新恢复秒开
+  goHistory("view-results");   // 结果页也写入历史栈，后退永远在本站内，不跨站卡死
+  fillResults(data, lastReq);
+}
+
+// 渲染结果页（首次进入、后退恢复共用）
+function fillResults(data, req){
+  document.getElementById("result-count").textContent = "共 " + data.total + " 条";
+  document.getElementById("req-summary").innerHTML =
+    `<span class="label">本次需求</span>` +
+    `<span>目标岗位 <b>${req.gangweiyaoqiu}</b></span>` +
+    `<span>薪资下限 <b>¥${req.xinzixiaxian}/月</b></span>` +
+    `<span>期望地点 <b>${req.qiwangdidian}</b></span>` +
+    `<span>待遇要求 <b>${req.daiyuyaoqiu}</b></span>`;
+
+  // 三档统计
+  const s = {good:0, warn:0, bad:0};
+  data.items.forEach(j => {
+    const c = j.verdict === "建议投" ? "good" : (j.verdict === "谨慎" ? "warn" : "bad");
+    s[c]++;
+  });
+  document.getElementById("stats-results").innerHTML = [
+    ["good", s.good, "条建议投递"],
+    ["warn", s.warn, "条谨慎考虑"],
+    ["bad", s.bad, "条不建议投递"]
+  ].map(([c,n,t]) => `<div class="stat ${c}"><span class="n">${n}</span><span class="t">${t}</span></div>`).join("");
+
+  // 落盘报告路径提示
+  const rep = data.report || {};
+  const path = rep.md || rep.excel || "";
+  const rp = document.getElementById("report-path");
+  if (path) {
+    rp.style.display = "block";
+    rp.textContent = "报告已保存：" + path;
+  } else {
+    rp.style.display = "none";
+  }
+
+  document.getElementById("list").innerHTML = data.items.map(renderJob).join("");
+  go("view-results");
+}
+
+// 在新标签页打开岗位，并切到前台；本页不跳走，后退不受影响
+function openJob(url){
+  if (!url || url === "#") return false;
+  const w = window.open(url, "_blank");
+  if (w) w.focus();
+  return false;
+}
+
+function renderJob(j){
+  const v = VERDICT[j.verdict] || VERDICT["不建议"];
+  const dims = DIM_ORDER.map(k => {
+    const lv = j.dims[k] || "存疑";
+    return `<div class="dim ${LV[lv]||'warn'}"><span class="dot ${LV[lv]||'warn'}"></span><span>${k}</span><span class="lv">${lv}</span></div>`;
+  }).join("");
+  // 每个维度的判断理由（从后端 dim_reasons 取）
+  const reasons = DIM_ORDER.map(k => {
+    const lv = j.dims[k] || "存疑";
+    const txt = (j.dim_reasons && j.dim_reasons[k]) || "";
+    return `<div class="dim-reason"><span class="dr-name">${k}</span><span class="dr-badge ${LV[lv]||'warn'}">${lv}</span><span class="dr-txt">${txt || "（无单独理由，见总评）"}</span></div>`;
+  }).join("");
+  // 岗位链接统一在新标签页打开（同页跳转会跨站导航，后退时浏览器易卡死加载）
+  const target = `href="${j.url||'#'}" target="_blank" rel="noopener" onclick="return openJob(this.href)"`;
+  return `<div class="card">
+    <div class="card-head">
+      <span class="verdict ${v.cls}">${v.label}</span>
+      <a class="job-main" ${target} title="在新标签页打开该岗位">
+        <div class="job-name">${j.name}</div>
+        <div class="job-meta">
+          <span>公司 <b>${j.company||"—"}</b></span>
+          <span>薪资 <b>${j.salary||"—"}</b></span>
+          <span>${j.location||""}</span>
+          <span>${j.experience||""} · ${j.education||""}</span>
+        </div>
+      </a>
+      <a class="apply-btn" ${target} title="在新标签页打开该岗位">去投递 ↗</a>
+    </div>
+    <div class="dims">${dims}</div>
+    <div class="reason"><b>评估理由：</b>${j.verdict_reason}</div>
+    <div class="reason" style="border-top:1px dashed var(--line);">
+      <div style="font-weight:700; color:var(--sub); margin-bottom:6px;">六维判断依据</div>
+      ${reasons}
+    </div>
+    <button class="toggle" onclick="this.nextElementSibling.classList.toggle('open'); this.textContent = this.nextElementSibling.classList.contains('open') ? '收起 JD 原文 ▲' : '展开 JD 原文 ▼';">展开 JD 原文 ▼</button>
+    <div class="jd">${j.jd}</div>
+  </div>`;
+}
+
+// ---- 启动自检：打开页面时向后端要环境状态，缺 API Key / Edge 未连时在顶部横幅提示 ----
+(function(){
+  fetch(ORIGIN + "/api/status")
+    .then(r => r.json())
+    .then(s => {
+      if (!s || !s.warnings || !s.warnings.length) return;
+      const b = document.getElementById("startup-banner");
+      if (!b) return;
+      b.style.display = "block";
+      b.innerHTML = "<b>使用前提醒：</b><ul style='margin:6px 0 0 18px;'>" +
+        s.warnings.map(w => "<li>" + w + "</li>").join("") +
+        "</ul><div style='margin-top:6px;'><button class='nav-btn' onclick='openEdge()'>打开 Edge（登录 BOSS）</button></div>";
+    })
+    .catch(() => {});
+})();
+
+// 手动打开调试版 Edge（拼接时自动追加输出）
+function openEdge(){
+  fetch(ORIGIN + "/api/edge/open")
+    .then(r => r.json())
+    .then(s => {
+      if (s.ok || s.already) {
+        showError(s.already ? "Edge 已在调试模式运行。" : "Edge 已打开：请在弹出的 Edge 窗口里登录 BOSS 直聘，并打开岗位搜索结果列表页。");
+      } else {
+        showError("打开 Edge 失败：" + (s.msg || "未知错误"));
+      }
+      go("view-form");
+    })
+    .catch(() => showError("无法连接后端服务（127.0.0.1:5000），请确认程序正在运行"));
+}
+</script>
+</body>
+</html>
